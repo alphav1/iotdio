@@ -2,6 +2,7 @@ import wave
 import pyaudio
 import numpy as np
 
+
 def apply_distortion(data, distortion_level):
     """
     Applies distortion to the audio signal.
@@ -19,6 +20,7 @@ def apply_distortion(data, distortion_level):
 
     # Convert back to raw bytes
     return audio_signal.astype(np.int16).tobytes()
+
 
 def play_audio_with_distortion(file_path, distortion_level=0.5):
     # Open the WAV file
@@ -55,6 +57,7 @@ def play_audio_with_distortion(file_path, distortion_level=0.5):
     # Close PyAudio and the WAV file
     audio.terminate()
     wf.close()
+
 
 if __name__ == "__main__":
     # Specify the path to your .wav file
