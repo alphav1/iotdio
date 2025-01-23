@@ -174,8 +174,8 @@ def apply_delay(audio_data, delay_buffer, delay_time, feedback, samplerate):
     delay_samples = int(delay_time * samplerate)
     delay_output = np.zeros_like(audio_data)
     for i in range(len(audio_data)):
-        delay_output[i] = audio_data[i] + delay_buffer[i]
-        delay_buffer[i] = audio_data[i] + feedback * delay_buffer[i]
+        delay_output[i] = audio_data[i] + delay_buffer[i % delay_samples]
+        delay_buffer[i % delay_samples] = audio_data[i] + feedback * delay_buffer[i % delay_samples]
     return delay_output, delay_buffer
 
 # Phaser effect
@@ -283,6 +283,8 @@ def menu_logic():
             effects_params[param_name] += delta
             if param_name == "gain":
                 effects_params[param_name] = min(max(0.0, effects_params[param_name]), 10.0)
+            elif param_name == "threshold":
+                effects_params[param_name] = min(max(0.1, effects_params[param_name]), 1.0)
             else:
                 effects_params[param_name] = min(max(0.0, effects_params[param_name]), 1.0)
 
