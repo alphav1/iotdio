@@ -14,8 +14,22 @@ BUTTON_NEXT = 5  # Button for switching effects
 BUTTON_PLAY = 6  # Button for starting playback
 
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(BUTTON_NEXT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(BUTTON_PLAY, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+# Flags for button states
+button_next_pressed = False
+button_play_pressed = False
+
+# Button callback functions
+def button_next_callback(channel):
+    global button_next_pressed
+    button_next_pressed = True
+
+def button_play_callback(channel):
+    global button_play_pressed
+    button_play_pressed = True
+
+# Register button callbacks
+GPIO.add_event_detect(BUTTON_NEXT, GPIO.FALLING, callback=button_next_callback, bouncetime=200)
+GPIO.add_event_detect(BUTTON_PLAY, GPIO.FALLING, callback=button_play_callback, bouncetime=200)
 
 # Path to your .wav file
 file_path = "test.wav"
@@ -32,6 +46,25 @@ effects_params = {
 
 lock = threading.Lock()
 current_effect = 0
+
+def disable_interrupts():
+    """
+    Disable GPIO interrupts for buttons and encoder.
+    """
+    GPIO.remove_event_detect(BUTTON_NEXT)
+    GPIO.remove_event_detect(BUTTON_PLAY)
+    GPIO.remove_event_detect(encoder.clk_pin)
+    GPIO.remove_event_detect(encoder.dt_pin)
+
+
+def enable_interrupts():
+    """
+    Re-enable GPIO interrupts for buttons and encoder.
+    """
+    GPIO.add_event_detect(BUTTON_NEXT, GPIO.FALLING, callback=button_next_callback, bouncetime=200)
+    GPIO.add_event_detect(BUTTON_PLAY, GPIO.FALLING, callback=button_play_callback, bouncetime=200)
+    GPIO.add_event_detect(encoder.clk_pin, GPIO.BOTH, callback=encoder.transition_occurred)
+    GPIO.add_event_detect(encoder.dt_pin, GPIO.BOTH, callback=encoder.transition_occurred)
 
 # Initialize rotary encoder
 class Encoder:
@@ -256,18 +289,22 @@ def menu_logic():
     update_display()
 
     while True:
-        if not GPIO.input(BUTTON_NEXT):
+        if button_next_pressed:
+            button_next_pressed = False
             current_effect = (current_effect + 1) % 4
             update_display()
             time.sleep(0.2)
 
-        if not GPIO.input(BUTTON_PLAY):
+        if button_play_pressed:
+            button_play_pressed = False
+            disable_interrupts()
             stop_event.clear()
             thread = threading.Thread(target=update_effects, daemon=True)
             thread.start()
             play_audio()
             stop_event.set()
             thread.join()
+            enable_interrupts()
             update_display()
 
         if encoder.value != last_value:
