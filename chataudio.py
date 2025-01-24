@@ -3,7 +3,7 @@ from scipy.io.wavfile import read
 import numpy as np
 import threading
 import RPi.GPIO as GPIO
-from encoder import Encoder
+from raspTasks.encoder import Encoder
 from display import DisplayManager
 import time
 
@@ -12,7 +12,7 @@ from scipy.io.wavfile import read
 import numpy as np
 import threading
 import RPi.GPIO as GPIO
-from encoder import Encoder
+from raspTasks.encoder import Encoder
 from display import DisplayManager
 import time
 
