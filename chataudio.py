@@ -7,17 +7,8 @@ from raspTasks.encoder import Encoder
 from display import DisplayManager
 import time
 
-import sounddevice as sd
-from scipy.io.wavfile import read
-import numpy as np
-import threading
-import RPi.GPIO as GPIO
-from raspTasks.encoder import Encoder
-from display import DisplayManager
-import time
-
 # Path to your .wav file
-file_path = "Get Lucky - Daft Punk.wav"
+file_path = "./testAudioFiles/Get Lucky - Daft Punk.wav"
 
 # Shared variables for distortion, delay, and phaser parameters
 effects_params = {
