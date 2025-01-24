@@ -8,8 +8,8 @@ import neopixel
 import traceback
 
 # Adafruit.IO configuration
-ADAFRUIT_IO_USERNAME = "mikdom9551"
-ADAFRUIT_IO_KEY = "aio_zwdB290qeqfOTa95po6HZgZ22iE6"
+'ADAFRUIT_IO_USERNAME ==>REDACTED'
+'ADAFRUIT_IO_KEY==>REDACTED'
 BROKER = "io.adafruit.com"
 PORT = 1883
 

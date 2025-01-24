@@ -2,6 +2,19 @@ import sounddevice as sd
 from scipy.io.wavfile import read
 import numpy as np
 import threading
+import RPi.GPIO as GPIO
+from encoder import Encoder
+from display import DisplayManager
+import time
+
+import sounddevice as sd
+from scipy.io.wavfile import read
+import numpy as np
+import threading
+import RPi.GPIO as GPIO
+from encoder import Encoder
+from display import DisplayManager
+import time
 
 # Path to your .wav file
 file_path = "Get Lucky - Daft Punk.wav"
@@ -21,14 +34,26 @@ lock = threading.Lock()
 sd.default.blocksize = 4096  # Increase buffer size
 sd.default.latency = 'high'  # Set low latency
 
+# GPIO setup for buttons
+buttonRed = 23
+buttonGreen = 24
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(buttonRed, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(buttonGreen, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+
+# Initialize the encoder
+encoder = Encoder(17, 18)
+
+# Initialize the display
+disp = SSD1331.SSD1331()
+disp.Init()
+display_manager = DisplayManager(disp, './lib/oled/Font.ttf', [
+                                 "./icons/gain.jpg", "./icons/threshold.jpg", "./icons/delay.jpg", "./icons/phaser.jpg"])
+
 # Distortion function
 
 
 def apply_distortion(audio_data, gain, threshold):
-    """
-    Apply distortion effect to the audio data.
-    Gain boosts the signal, and threshold clips it.
-    """
     audio_data = audio_data * gain  # Apply gain
     audio_data = np.clip(audio_data, -threshold,
                          threshold)  # Apply hard clipping
@@ -39,10 +64,6 @@ def apply_distortion(audio_data, gain, threshold):
 
 
 def apply_delay(audio_data, delay_buffer, delay_time, feedback, samplerate):
-    """
-    Apply delay effect to the audio data.
-    delay_time is in seconds, feedback is the echo strength.
-    """
     delay_samples = int(delay_time * samplerate)
     delay_output = np.zeros_like(audio_data)
     for i in range(len(audio_data)):
@@ -54,10 +75,6 @@ def apply_delay(audio_data, delay_buffer, delay_time, feedback, samplerate):
 
 
 def apply_phaser(audio_data, phase, depth, rate, samplerate):
-    """
-    Apply phaser effect to the audio data.
-    depth controls how deep the phase modulation is, rate controls speed.
-    """
     modulation = np.sin(2 * np.pi * rate * phase / samplerate)
     return audio_data * (1 - depth * modulation)  # Phaser effect
 
@@ -109,61 +126,38 @@ def callback(outdata, frames, time, status):
 
 def update_effects():
     global effects_params
-    print("You can adjust effects in real time:")
-    print("Commands: 'g' to adjust gain, 't' to adjust threshold, 'd' to adjust delay, 'p' to adjust phaser, 'q' to quit adjustments.")
+    effect_names = ["gain", "threshold", "delay_time",
+                    "delay_feedback", "phaser_depth", "phaser_rate"]
+    current_effect_index = 0
+
+    print("You can adjust effects in real time using the encoder and buttons.")
+    print("Press the red button to change the effect parameter.")
+    print("Use the encoder to adjust the current effect parameter.")
 
     while True:
-        command = input("Enter command (g/t/d/p/q): ").strip().lower()
-        if command == "g":
-            try:
-                new_gain = float(input("Enter new gain value: "))
-                with lock:
-                    effects_params["gain"] = new_gain
-                print(f"Gain updated to {new_gain}")
-            except ValueError:
-                print("Invalid input. Please enter a numeric value.")
-        elif command == "t":
-            try:
-                new_threshold = float(
-                    input("Enter new threshold value (0.0 to 1.0): "))
-                if 0.0 < new_threshold <= 1.0:
-                    with lock:
-                        effects_params["threshold"] = new_threshold
-                    print(f"Threshold updated to {new_threshold}")
-                else:
-                    print("Threshold must be between 0.0 and 1.0.")
-            except ValueError:
-                print("Invalid input. Please enter a numeric value.")
-        elif command == "d":
-            try:
-                new_delay_time = float(
-                    input("Enter new delay time in seconds: "))
-                new_feedback = float(
-                    input("Enter new delay feedback (0.0 to 1.0): "))
-                with lock:
-                    effects_params["delay_time"] = new_delay_time
-                    effects_params["delay_feedback"] = new_feedback
-                print(f"Delay updated to {new_delay_time} seconds with {
-                      new_feedback} feedback.")
-            except ValueError:
-                print("Invalid input. Please enter numeric values.")
-        elif command == "p":
-            try:
-                new_phaser_depth = float(
-                    input("Enter new phaser depth (0.0 to 1.0): "))
-                new_phaser_rate = float(input("Enter new phaser rate: "))
-                with lock:
-                    effects_params["phaser_depth"] = new_phaser_depth
-                    effects_params["phaser_rate"] = new_phaser_rate
-                print(f"Phaser updated to {new_phaser_depth} depth with {
-                      new_phaser_rate} rate.")
-            except ValueError:
-                print("Invalid input. Please enter numeric values.")
-        elif command == "q":
+        # Check if the red button is pressed to change the effect parameter
+        if GPIO.input(buttonRed) == GPIO.LOW:
+            current_effect_index = (
+                current_effect_index + 1) % len(effect_names)
+            print(f"Selected effect: {effect_names[current_effect_index]}")
+            time.sleep(0.5)  # Debounce delay
+
+        # Adjust the current effect parameter using the encoder
+        with lock:
+            effects_params[effect_names[current_effect_index]
+                           ] += encoder.value * 0.01
+            encoder.value = 0  # Reset encoder value
+
+        # Update the display with the current effect parameters
+        for i, effect in enumerate(effect_names):
+            display_manager.update_text(
+                i, f"{effect}: {effects_params[effect]:.2f}")
+        display_manager.display()
+
+        # Check if the green button is pressed to exit
+        if GPIO.input(buttonGreen) == GPIO.LOW:
             print("Exiting effects adjustment.")
             break
-        else:
-            print("Invalid command. Use 'g', 't', 'd', 'p', or 'q'.")
 
 
 # Read the audio file
@@ -195,3 +189,5 @@ except FileNotFoundError:
     print(f"File not found: {file_path}")
 except Exception as e:
     print(f"An error occurred: {e}")
+finally:
+    GPIO.cleanup()
