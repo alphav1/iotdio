@@ -14,7 +14,6 @@ Hardware components:
 - Push Buttons
 
 Authors: Mikołaj Domalewski, Michał Biegański, Michał Kaliszewski
-Version: 1.0
 """
 
 # Standard library imports
@@ -44,14 +43,16 @@ GPIO.setup(BUTTON_PLAY, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(CLK, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 GPIO.setup(DT, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 
-# Flags for button states and global variables initalization
+# Flags for button states and global variables initialization
 button_next_pressed = False
 button_play_pressed = False
 global display_manager
 current_effect = 0
 delta = 0
+
 # Path to test .wav file
 file_path = "test.wav"
+
 # Shared variables for effects parameters and current selection
 effects_params = {
     "gain": 1.0,
@@ -120,7 +121,6 @@ class Encoder:
     def __init__(self, clk_pin, dt_pin):
         self.clk_pin = clk_pin
         self.dt_pin = dt_pin
-        # self.callback = callback
         self.value = 0
         self.last_state = self.read_state()
 
@@ -156,7 +156,6 @@ class Encoder:
                 self.value += 1
 
         self.last_state = current_state
-
         self.callback()
 
     def callback(self):
@@ -287,14 +286,14 @@ def callback(outdata, frames, time, status):
 
 
 def menu_logic():
-
     global display_manager, delta
     # Initialize OLED display
     disp = SSD1331.SSD1331()
     disp.Init()
     disp.clear()
     display_manager = DisplayManager(disp, './lib/oled/Font.ttf', [
-        "./icons/gain.jpg", "./icons/threshold.jpg", "./icons/delay.jpg", "./icons/phaser.jpg"])
+        "./icons/gain.jpg", "./icons/threshold.jpg", "./icons/delay.jpg", "./icons/phaser.jpg"
+    ])
     global current_effect, effects_params, button_next_pressed, button_play_pressed
 
     def modify_effect(effect_idx, delta):
@@ -323,12 +322,7 @@ def menu_logic():
         if button_play_pressed:
             button_play_pressed = False
             disable_interrupts()
-            # stop_event.clear()
-            # thread = threading.Thread(target=update_effects, daemon=True)
-            # thread.start()
             play_audio()
-            # stop_event.set()
-            # thread.join()
             enable_interrupts()
             update_display()
 
@@ -336,7 +330,6 @@ def menu_logic():
             modify_effect(current_effect, delta)
             update_display()
             delta = 0
-
 
 # Play audio
 
